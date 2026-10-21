@@ -1,0 +1,40 @@
+name: Validate audit scope counts
+on:
+  push:
+    branches: [validate/1548-audit-scope]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Exact source counts
+        run: |
+          wc -l contracts/reputation/src/*.rs
+          grep -c "pub fn" contracts/reputation/src/lib.rs
+      - name: Focused regression
+        run: npm test -- tests/audit-bank-counts.spec.ts
+      - name: Format
+        if: always()
+        run: npm run format:check
+      - name: Changed file formatting output
+        if: always()
+        run: |
+          npx prettier tests/audit-bank-counts.spec.ts
+          npx prettier docs/grants/AUDIT_BANK_APPLICATION.md
+      - name: Lint
+        if: always()
+        run: npm run lint
+      - name: TypeScript
+        if: always()
+        run: npm run typecheck
+      - name: Unit tests
+        if: always()
+        run: npm test
